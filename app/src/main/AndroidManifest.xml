@@ -12,8 +12,8 @@
         android:icon="@mipmap/ic_launcher"
         android:label="AEGIS Mobile"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-        android:usesCleartextTraffic="true"> <!-- This allows http:// not just https -->
-        
+        android:usesCleartextTraffic="true"> <!-- Allows http:// to talk to Brain -->
+
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
@@ -24,7 +24,14 @@
             </intent-filter>
         </activity>
         
-        <activity android:name=".ui.SettingsActivity" />
+        <activity 
+            android:name=".ui.SettingsActivity" 
+            android:label="AEGIS Settings"/>
+
+        <service
+            android:name=".capture.ScreenCaptureService"
+            android:foregroundServiceType="mediaProjection"
+            android:exported="false" />
 
     </application>
 
