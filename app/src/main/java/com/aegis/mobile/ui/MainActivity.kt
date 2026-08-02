@@ -1,72 +1,70 @@
 package com.aegis.mobile.ui
 
-import android.app.Activity
 import android.content.Intent
-import android.media.projection.MediaProjectionManager
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Button
 import android.widget.TextView
-import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import com.aegis.mobile.R
+import com.aegis.mobile.automation.Mt5AccessibilityService
 import com.aegis.mobile.capture.ScreenCaptureService
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var viewModel: StatusViewModel
-    private lateinit var btnStart: Button
-    private lateinit var tvSignal: TextView
-    private lateinit var tvDetails: TextView
-    private var isRunning = false
-
-    private val projectionLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            val serviceIntent = Intent(this, ScreenCaptureService::class.java).apply {
-                putExtra(ScreenCaptureService.EXTRA_RESULT_CODE, result.resultCode)
-                putExtra(ScreenCaptureService.EXTRA_RESULT_DATA, result.data)
-            }
-            startForegroundService(serviceIntent)
-            isRunning = true
-            btnStart.text = "STOP AEGIS"
-        }
-    }
+    private lateinit var statusText: TextView
+    private lateinit var startBtn: Button
+    private lateinit var settingsBtn: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        statusText = findViewById(R.id.statusText)
+        startBtn = findViewById(R.id.startBtn)
+        settingsBtn = findViewById(R.id.settingsBtn)
+        
         viewModel = ViewModelProvider(this)[StatusViewModel::class.java]
-        btnStart = findViewById(R.id.btnStart)
-        tvSignal = findViewById(R.id.tvSignal)
-        tvDetails = findViewById(R.id.tvDetails)
 
-        btnStart.setOnClickListener {
-            if (!isRunning) {
-                val projectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                projectionLauncher.launch(projectionManager.createScreenCaptureIntent())
-            } else {
-                stopService(Intent(this, ScreenCaptureService::class.java))
-                isRunning = false
-                btnStart.text = "START AEGIS"
-                viewModel.updateSignal(null)
+        // Observe signal from ViewModel
+        viewModel.signal.observe(this) { signal ->
+            statusText.text = "Signal: $signal"
+            
+            // PHASE 2: AUTO-CLICK MT5
+            if (signal == "BUY" || signal == "SELL") {
+                if (isAccessibilityEnabled()) {
+                    Mt5AccessibilityService.executeTrade(signal)
+                    Toast.makeText(this, "Executing $signal on MT5", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Enable Accessibility Service first!", Toast.LENGTH_LONG).show()
+                    openAccessibilitySettings()
+                }
             }
         }
 
-        viewModel.currentSignal.observe(this) { signal ->
-            tvSignal.text = signal?.signal ?: "HOLD"
-            tvDetails.text = "Confidence: ${(signal?.confidence ?: 0f) * 100}% \n${signal?.details ?: "Waiting for Brain..."}"
-            
-            // Change color based on signal
-            tvSignal.setBackgroundColor(
-                when(signal?.signal) {
-                    "BUY" -> 0xFF4CAF50.toInt() // Green
-                    "SELL" -> 0xFFF44336.toInt() // Red
-                    else -> 0xFF9E9E9E.toInt() // Gray
-                }
-            )
+        startBtn.setOnClickListener {
+            startForegroundService(Intent(this, ScreenCaptureService::class.java))
+            Toast.makeText(this, "AEGIS Started", Toast.LENGTH_SHORT).show()
         }
+
+        settingsBtn.setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+    }
+
+    private fun isAccessibilityEnabled(): Boolean {
+        val service = "$packageName/.automation.Mt5AccessibilityService"
+        val enabledServices = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        )
+        return enabledServices?.contains(service) == true
+    }
+
+    private fun openAccessibilitySettings() {
+        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
     }
 }
