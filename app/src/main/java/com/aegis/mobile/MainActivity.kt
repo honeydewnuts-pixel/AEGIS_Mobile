@@ -24,12 +24,17 @@ class MainActivity : AppCompatActivity() {
         val sampleData = DataFeed.getSampleCandles()
         val closePrices = sampleData.map { it.close }
 
-        // Load template with real data
+        // Load template with real data - matches your .tpl file
         engine.addBollingerBands(closePrices, period = 20, deviation = 1.0, color = Color.parseColor("#C7C7CE"))
         engine.addBollingerBands(closePrices, period = 30, deviation = 1.0, color = Color.WHITE)
         engine.addMA(closePrices, period = 10, maMethod = "SMA", color = Color.BLUE)
         engine.addMA(closePrices, period = 100, maMethod = "SMA", color = Color.YELLOW)
         engine.addRSI(closePrices, period = 9, color = Color.parseColor("#C7C7CE"))
+        
+        // THE 3 NEW ONES WE JUST ADDED
+        engine.addCCI(sampleData, period = 6, color = Color.BLUE)
+        engine.addWPR(sampleData, period = 60, color = Color.parseColor("#01325B"))
+        engine.addEnvelopes(closePrices, period = 10, deviation = 0.6, color = Color.parseColor("#01325B"))
     }
 
     private fun setupChart() {
