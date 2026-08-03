@@ -20,8 +20,16 @@ class MainActivity : AppCompatActivity() {
         setupChart()
         engine = IndicatorEngine(chart)
         
-        // THIS IS THE MAGIC: Auto-load the full AEGIS template
-        TemplateLoader.loadAEGISTemplate(engine)
+        // Get sample data for now
+        val sampleData = DataFeed.getSampleCandles()
+        val closePrices = sampleData.map { it.close }
+
+        // Load template with real data
+        engine.addBollingerBands(closePrices, period = 20, deviation = 1.0, color = Color.parseColor("#C7C7CE"))
+        engine.addBollingerBands(closePrices, period = 30, deviation = 1.0, color = Color.WHITE)
+        engine.addMA(closePrices, period = 10, maMethod = "SMA", color = Color.BLUE)
+        engine.addMA(closePrices, period = 100, maMethod = "SMA", color = Color.YELLOW)
+        engine.addRSI(closePrices, period = 9, color = Color.parseColor("#C7C7CE"))
     }
 
     private fun setupChart() {
@@ -30,25 +38,12 @@ class MainActivity : AppCompatActivity() {
         chart.setTouchEnabled(true)
         chart.isDragEnabled = true
         chart.setScaleEnabled(true)
-        chart.setPinchZoom(true)
-        chart.setDrawGridBackground(false)
         chart.setBackgroundColor(Color.parseColor("#0D0D0D"))
 
-        val xAxis = chart.xAxis
-        xAxis.position = XAxis.XAxisPosition.BOTTOM
-        xAxis.textColor = Color.WHITE
-        xAxis.setDrawGridLines(false)
-
-        val leftAxis = chart.axisLeft
-        leftAxis.textColor = Color.WHITE
-        leftAxis.setDrawGridLines(true)
-        leftAxis.gridColor = Color.parseColor("#333333")
-
-        val rightAxis = chart.axisRight
-        rightAxis.isEnabled = true
-        rightAxis.textColor = Color.WHITE
-
-        chart.legend.isEnabled = true
+        chart.xAxis.position = XAxis.XAxisPosition.BOTTOM
+        chart.xAxis.textColor = Color.WHITE
+        chart.axisLeft.textColor = Color.WHITE
+        chart.axisRight.textColor = Color.WHITE
         chart.legend.textColor = Color.WHITE
         
         chart.data = CombinedData()
